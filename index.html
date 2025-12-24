@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuickMail OTP - Pro</title>
+    <style>
+        :root { --primary: #6366f1; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); padding: 20px; display: flex; justify-content: center; margin: 0; }
+        .container { width: 100%; max-width: 500px; background: var(--card); padding: 25px; border-radius: 15px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .mail-area { display: flex; gap: 5px; margin: 20px 0; }
+        input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 14px; }
+        button { padding: 12px 15px; cursor: pointer; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; }
+        .refresh { background: #10b981; width: 100%; margin-bottom: 20px; font-size: 16px; }
+        .mail-item { background: #334155; padding: 12px; border-radius: 8px; margin-bottom: 10px; cursor: pointer; border-left: 4px solid var(--primary); text-align: left; }
+        .mail-body { background: #f8fafc; color: #1e293b; padding: 15px; border-radius: 8px; margin-top: 10px; display: none; text-align: left; font-size: 14px; line-height: 1.5; overflow-wrap: break-word; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>QuickMail ⚡</h2>
+    <div class="mail-area">
+        <input type="text" id="emailAddr" readonly placeholder="Generating...">
+        <button onclick="copyMail()">Copy</button>
+    </div>
+    <button class="refresh" onclick="checkMail()">Refresh Inbox 🔄</button>
+    <div id="status" style="margin-bottom: 15px; color: #94a3b8;">Waiting for emails...</div>
+    <div id="emails"></div>
+</div>
+<script>
+    let user = "", domain = "";
+    const api = "https://www.1secmail.com/api/v1/";
+    function genEmail() {
+        const domains = ["1secmail.com", "1secmail.org", "1secmail.net"];
+        user = Math.random().toString(36).substring(2, 10);
+        domain = domains[Math.floor(Math.random() * domains.length)];
+        document.getElementById("emailAddr").value = user + "@" + domain;
+    }
+    async function checkMail() {
+        document.getElementById("status").innerText = "Checking...";
+        const res = await fetch(`${api}?action=getMessages&login=${user}&domain=${domain}`);
+        const data = await res.json();
+        const list = document.getElementById("emails");
+        list.innerHTML = "";
+        if(data.length === 0) { document.getElementById("status").innerText = "No emails yet."; } 
+        else {
+            document.getElementById("status").innerText = "Click to read email:";
+            data.forEach(m => {
+                const d = document.createElement("div");
+                d.className = "mail-item";
+                d.innerHTML = `<strong>From:</strong> ${m.from}<br><strong>Sub:</strong> ${m.subject}`;
+                d.onclick = () => readMail(m.id);
+                list.appendChild(d);
+                const b = document.createElement("div");
+                b.id = "body-" + m.id; b.className = "mail-body";
+                list.appendChild(b);
+            });
+        }
+    }
+    async function readMail(id) {
+        const res = await fetch(`${api}?action=readMessage&login=${user}&domain=${domain}&id=${id}`);
+        const data = await res.json();
+        const b = document.getElementById("body-" + id);
+        b.innerHTML = data.body;
+        b.style.display = b.style.display === "block" ? "none" : "block";
+    }
+    function copyMail() {
+        const el = document.getElementById("emailAddr");
+        el.select(); document.execCommand("copy");
+        alert("Email Copied!");
+    }
+    window.onload = genEmail;
+</script>
+</body>
+</html>
